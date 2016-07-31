@@ -18,17 +18,17 @@ type jsonErr struct {
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Hello")
+	fmt.Fprintln(w, "Employee API")
 }
 
 func employeeIndex(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
-
 	var emps models.Employees
+
 	_, err := db.Select(&emps, "select * From employees")
 	checkError(err)
 
 	if len(emps) > 0 {
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
 		if err := json.NewEncoder(w).Encode(emps); err != nil {
 			panic(err)
@@ -36,6 +36,7 @@ func employeeIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	w.WriteHeader(http.StatusNotFound)
 	if err := json.NewEncoder(w).Encode(jsonErr{code: http.StatusNotFound, text: "No employees"}); err != nil {
 		panic(err)
@@ -48,7 +49,6 @@ func employeeShow(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	vars := mux.Vars(r)
-	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 
 	if empID, err = strconv.Atoi(vars["employeeID"]); err != nil {
 		panic(err)
@@ -57,6 +57,7 @@ func employeeShow(w http.ResponseWriter, r *http.Request) {
 	err = db.SelectOne(&emp, "select employee_id, name, title from employees where employee_id = ?", empID)
 	checkError(err)
 
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	if err = json.NewEncoder(w).Encode(emp); err != nil {
 		panic(err)
@@ -66,7 +67,6 @@ func employeeShow(w http.ResponseWriter, r *http.Request) {
 func employeeCreate(w http.ResponseWriter, r *http.Request) {
 	var emp models.Employee
 
-	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
 	if err != nil {
 		panic(err)
@@ -85,6 +85,7 @@ func employeeCreate(w http.ResponseWriter, r *http.Request) {
 	err = db.Insert(&emp)
 	checkError(err)
 
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(emp); err != nil {
 		panic(err)
@@ -97,7 +98,6 @@ func employeeChange(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	vars := mux.Vars(r)
-	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 
 	if employeeID, err = strconv.Atoi(vars["employeeID"]); err != nil {
 		panic(err)
@@ -111,6 +111,7 @@ func employeeChange(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	if err = json.Unmarshal(body, &emp); err != nil {
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		w.WriteHeader(http.StatusBadRequest)
 		if err = json.NewEncoder(w).Encode(err); err != nil {
 			panic(err)
@@ -123,11 +124,13 @@ func employeeChange(w http.ResponseWriter, r *http.Request) {
 	checkError(err)
 
 	if count > 0 {
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
 		if err := json.NewEncoder(w).Encode(emp); err != nil {
 			panic(err)
 		}
 	} else {
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		w.WriteHeader(http.StatusNotFound)
 		if err := json.NewEncoder(w).Encode(jsonErr{code: http.StatusNotFound, text: "Not found"}); err != nil {
 			panic(err)
