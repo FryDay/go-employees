@@ -113,3 +113,30 @@ func employeeCreate(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 }
+
+func employeeDelete(w http.ResponseWriter, r *http.Request) {
+	var employeeID int
+	var err error
+
+	vars := mux.Vars(r)
+
+	if employeeID, err = strconv.Atoi(vars["employeeID"]); err != nil {
+		panic(err)
+	}
+
+	stmt, err := db.Prepare("delete from employees where id = ?")
+	checkError(err)
+	defer stmt.Close()
+
+	if _, err = stmt.Exec(employeeID); err != nil {
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		w.WriteHeader(http.StatusNotFound)
+		if err = json.NewEncoder(w).Encode(jsonErr{code: http.StatusNotFound, text: "Not found"}); err != nil {
+			panic(err)
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintln(w, "Employee deleted")
+}
