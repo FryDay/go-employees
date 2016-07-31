@@ -35,6 +35,12 @@ var routes = []route{
 		employeeCreate,
 	},
 	route{
+		"EmployeeChange",
+		"PUT",
+		"/employees/{employeeID}",
+		employeeChange,
+	},
+	route{
 		"EmployeeDelete",
 		"DELETE",
 		"/employees/{employeeID}",

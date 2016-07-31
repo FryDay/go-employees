@@ -114,6 +114,57 @@ func employeeCreate(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func employeeChange(w http.ResponseWriter, r *http.Request) {
+	var emp models.Employee
+	var employeeID int
+	var err error
+
+	vars := mux.Vars(r)
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+
+	if employeeID, err = strconv.Atoi(vars["employeeID"]); err != nil {
+		panic(err)
+	}
+
+	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
+	if err != nil {
+		panic(err)
+	}
+	if err = r.Body.Close(); err != nil {
+		panic(err)
+	}
+	if err = json.Unmarshal(body, &emp); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		if err = json.NewEncoder(w).Encode(err); err != nil {
+			panic(err)
+		}
+		return
+	}
+
+	stmt, err := db.Prepare("update employees set name = ?, title = ? where id = ?")
+	checkError(err)
+	defer stmt.Close()
+
+	result, err := stmt.Exec(emp.Name, emp.Title, employeeID)
+	checkError(err)
+
+	rows, err := result.RowsAffected()
+	checkError(err)
+
+	if rows > 0 {
+		w.WriteHeader(http.StatusOK)
+		emp.ID = int64(employeeID)
+		if err := json.NewEncoder(w).Encode(emp); err != nil {
+			panic(err)
+		}
+	} else {
+		w.WriteHeader(http.StatusNoContent)
+		if err := json.NewEncoder(w).Encode(emp); err != nil {
+			panic(err)
+		}
+	}
+}
+
 func employeeDelete(w http.ResponseWriter, r *http.Request) {
 	var employeeID int
 	var err error
