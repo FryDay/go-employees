@@ -1,14 +1,15 @@
 package main
 
 import (
-	"database/sql"
 	"log"
 	"net/http"
+
+	"gopkg.in/gorp.v1"
 
 	"github.com/FryDay/go-employees/models"
 )
 
-var db *sql.DB
+var db *gorp.DbMap
 
 func main() {
 	newDB, err := models.NewDB("./emps.db")
@@ -16,7 +17,7 @@ func main() {
 		log.Panic(err)
 	}
 	db = newDB
-	defer db.Close()
+	defer db.Db.Close()
 
 	router := newRouter()
 	log.Fatal(http.ListenAndServe(":8080", router))

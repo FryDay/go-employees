@@ -24,19 +24,9 @@ func index(w http.ResponseWriter, r *http.Request) {
 func employeeIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 
-	rows, err := db.Query("select * From employees")
-	checkError(err)
-	defer rows.Close()
-
 	var emps models.Employees
-	for rows.Next() {
-		var emp models.Employee
-		checkError(rows.Scan(&emp.ID, &emp.Name, &emp.Title))
-		emps = append(emps, emp)
-	}
-	if rows.Err() != nil {
-		panic(err)
-	}
+	_, err := db.Select(&emps, "select * From employees")
+	checkError(err)
 
 	if len(emps) > 0 {
 		w.WriteHeader(http.StatusOK)
@@ -53,29 +43,22 @@ func employeeIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func employeeShow(w http.ResponseWriter, r *http.Request) {
-	var employee models.Employee
-	var employeeID int
+	var emp models.Employee
+	var empID int
 	var err error
 
 	vars := mux.Vars(r)
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 
-	if employeeID, err = strconv.Atoi(vars["employeeID"]); err != nil {
+	if empID, err = strconv.Atoi(vars["employeeID"]); err != nil {
 		panic(err)
 	}
 
-	stmt := "select id, name, title from employees where id = ?"
-
-	if err = db.QueryRow(stmt, employeeID).Scan(&employee.ID, &employee.Name, &employee.Title); err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		if err = json.NewEncoder(w).Encode(jsonErr{code: http.StatusNotFound, text: "No employees"}); err != nil {
-			panic(err)
-		}
-		return
-	}
+	err = db.SelectOne(&emp, "select employee_id, name, title from employees where employee_id = ?", empID)
+	checkError(err)
 
 	w.WriteHeader(http.StatusOK)
-	if err = json.NewEncoder(w).Encode(employee); err != nil {
+	if err = json.NewEncoder(w).Encode(emp); err != nil {
 		panic(err)
 	}
 }
@@ -99,15 +82,9 @@ func employeeCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stmt := "insert into employees(name, title) values (?,?)"
-
-	result, err := db.Exec(stmt, emp.Name, emp.Title)
+	err = db.Insert(&emp)
 	checkError(err)
 
-	id, err := result.LastInsertId()
-	checkError(err)
-
-	emp.ID = id
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(emp); err != nil {
 		panic(err)
@@ -141,23 +118,18 @@ func employeeChange(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stmt := "update employees set name = ?, title = ? where id = ?"
-
-	result, err := db.Exec(stmt, emp.Name, emp.Title, employeeID)
+	emp.ID = int64(employeeID)
+	count, err := db.Update(&emp)
 	checkError(err)
 
-	numRows, err := result.RowsAffected()
-	checkError(err)
-
-	if numRows > 0 {
+	if count > 0 {
 		w.WriteHeader(http.StatusOK)
-		emp.ID = int64(employeeID)
 		if err := json.NewEncoder(w).Encode(emp); err != nil {
 			panic(err)
 		}
 	} else {
-		w.WriteHeader(http.StatusNoContent)
-		if err := json.NewEncoder(w).Encode(emp); err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		if err := json.NewEncoder(w).Encode(jsonErr{code: http.StatusNotFound, text: "Not found"}); err != nil {
 			panic(err)
 		}
 	}
@@ -173,15 +145,10 @@ func employeeDelete(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	stmt := "delete from employees where id = ?"
+	emp := models.Employee{ID: int64(employeeID)}
+	count, err := db.Delete(&emp)
 
-	result, err := db.Exec(stmt, employeeID)
-	checkError(err)
-
-	numRows, err := result.RowsAffected()
-	checkError(err)
-
-	if numRows > 0 {
+	if count > 0 {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintln(w, "Employee deleted")
 	} else {
