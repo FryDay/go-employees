@@ -64,11 +64,9 @@ func employeeShow(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	stmt, err := db.Prepare("select id, name, title from employees where id = ?")
-	checkError(err)
-	defer stmt.Close()
+	stmt := "select id, name, title from employees where id = ?"
 
-	if err = stmt.QueryRow(employeeID).Scan(&employee.ID, &employee.Name, &employee.Title); err != nil {
+	if err = db.QueryRow(stmt, employeeID).Scan(&employee.ID, &employee.Name, &employee.Title); err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		if err = json.NewEncoder(w).Encode(jsonErr{code: http.StatusNotFound, text: "No employees"}); err != nil {
 			panic(err)
@@ -101,11 +99,9 @@ func employeeCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stmt, err := db.Prepare("insert into employees(name, title) values (?,?)")
-	checkError(err)
-	defer stmt.Close()
+	stmt := "insert into employees(name, title) values (?,?)"
 
-	result, err := stmt.Exec(emp.Name, emp.Title)
+	result, err := db.Exec(stmt, emp.Name, emp.Title)
 	checkError(err)
 
 	id, err := result.LastInsertId()
@@ -145,17 +141,15 @@ func employeeChange(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stmt, err := db.Prepare("update employees set name = ?, title = ? where id = ?")
-	checkError(err)
-	defer stmt.Close()
+	stmt := "update employees set name = ?, title = ? where id = ?"
 
-	result, err := stmt.Exec(emp.Name, emp.Title, employeeID)
+	result, err := db.Exec(stmt, emp.Name, emp.Title, employeeID)
 	checkError(err)
 
-	rows, err := result.RowsAffected()
+	numRows, err := result.RowsAffected()
 	checkError(err)
 
-	if rows > 0 {
+	if numRows > 0 {
 		w.WriteHeader(http.StatusOK)
 		emp.ID = int64(employeeID)
 		if err := json.NewEncoder(w).Encode(emp); err != nil {
@@ -179,19 +173,22 @@ func employeeDelete(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	stmt, err := db.Prepare("delete from employees where id = ?")
-	checkError(err)
-	defer stmt.Close()
+	stmt := "delete from employees where id = ?"
 
-	if _, err = stmt.Exec(employeeID); err != nil {
+	result, err := db.Exec(stmt, employeeID)
+	checkError(err)
+
+	numRows, err := result.RowsAffected()
+	checkError(err)
+
+	if numRows > 0 {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, "Employee deleted")
+	} else {
 		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		w.WriteHeader(http.StatusNotFound)
 		if err = json.NewEncoder(w).Encode(jsonErr{code: http.StatusNotFound, text: "Not found"}); err != nil {
 			panic(err)
 		}
-		return
 	}
-
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, "Employee deleted")
 }
