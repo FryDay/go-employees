@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/FryDay/employees/models"
+	"github.com/FryDay/go-employees/models"
 	"github.com/gorilla/mux"
 )
 

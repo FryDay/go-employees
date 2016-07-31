@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/FryDay/employees/models"
+	"github.com/FryDay/go-employees/models"
 )
 
 var db *sql.DB
