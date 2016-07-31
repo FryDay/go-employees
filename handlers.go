@@ -26,12 +26,16 @@ func employeeIndex(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := db.Query("select * From employees")
 	checkError(err)
+	defer rows.Close()
 
 	var emps models.Employees
 	for rows.Next() {
 		var emp models.Employee
 		checkError(rows.Scan(&emp.ID, &emp.Name, &emp.Title))
 		emps = append(emps, emp)
+	}
+	if rows.Err() != nil {
+		panic(err)
 	}
 
 	if len(emps) > 0 {
