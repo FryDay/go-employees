@@ -90,7 +90,7 @@ func employeeCreate(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	if err = json.Unmarshal(body, &emp); err != nil {
-		w.WriteHeader(422) // unprocessable
+		w.WriteHeader(http.StatusBadRequest)
 		if err = json.NewEncoder(w).Encode(err); err != nil {
 			panic(err)
 		}
